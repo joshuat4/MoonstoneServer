@@ -27,6 +27,11 @@ exports.addMessage = functions.https.onRequest((req, res) => {
   });
 });
 
+function returnData(imageURL, description, coord) {
+    this.imageURL = imageURL;
+    this.description = description;
+    this.coord = coord;
+}
 
 function  bearing(lat1,lng1,lat2,lng2) {
             var dLon = _toRad(lng2-lng1);
@@ -43,6 +48,7 @@ function _toRad(deg) {
 function _toDeg(rad) {
           return rad * 180 / Math.PI;
       }
+
 
 // Listens for new messages added to /messages/:pushId/original and creates an
 // uppercase version of the message to /messages/:pushId/uppercase
@@ -69,42 +75,73 @@ exports.mapRequest = functions.https.onRequest((req,res) => {
   request(routeURL, function (error, response, body) {
     var ob = JSON.parse(body);
     var location_array = [ob.routes[0].legs[0].steps[0].start_location, ob.routes[0].legs[0].steps[0].end_location];
+    var description_array = [ob.routes[0].legs[0].steps[0].html_instructions];
     var i;
   for (i = 1; i < ob.routes[0].legs[0].steps.length; i++) {
       location_array.push(ob.routes[0].legs[0].steps[i].end_location);
+      description_array.push(ob.routes[0].legs[0].steps[i].html_instructions);
   }
   var shot_array = [];
   var bearing_array = [];
-  //Get bearings
-  for(i=0; i < location_array.length-1; i++){
-    //MIGHT HAVE TO PARSE
-    var lat_dif = (location_array[i+1].lat - location_array[i].lat) * 0.85;
-    var lon_div = (location_array[i+1].lng - location_array[i].lng) * 0.85;
-    shot_array.push((location_array[i].lat + lat_dif), (location_array[i].lng + lon_div));
 
+  //Get bearings
+
+  //Adjusted
+  // for(i=0; i < location_array.length-1; i++){
+  //
+  //   var lat_dif = (location_array[i+1].lat - location_array[i].lat) * 0.85;
+  //   var lon_div = (location_array[i+1].lng - location_array[i].lng) * 0.85;
+  //   shot_array.push((location_array[i].lat + lat_dif), (location_array[i].lng + lon_div));
+
+    // var bear = bearing(location_array[i].lat, location_array[i].lng, location_array[i+1].lat, location_array[i+1].lng);
+    // bearing_array.push(bear);
+  // }
+
+  for(i=0; i < location_array.length-1; i++){
     var bear = bearing(location_array[i].lat, location_array[i].lng, location_array[i+1].lat, location_array[i+1].lng);
     bearing_array.push(bear);
   }
 
-    // res.json(shot_array.concat(bearing_array));
+  //Generate return data
+  var data = [];
+  for(i=0; i<location_array.length; i++){
+    var dataPoint;
+    var streetURL;
+    //Should point at the place
+    if(i === location_array.length-1){
+      //Show a streetview shot of the actual place
+      streetURL = "https://maps.googleapis.com/maps/api/streetview?size=600x300&location=" + split[1];
+      dataPoint = new returnData(streetURL,"Welcome to your destination", location_array[i]);
+      data.push(dataPoint);
+
+    }
+    else{
+      streetURL = "https://maps.googleapis.com/maps/api/streetview?size=600x300&location=" + String(location_array[i].lat) + "," + String(location_array[i].lng) + "&heading=" + bearing_array[i] + "&pitch=-0.76";
+      dataPoint = new returnData(streetURL, description_array[i], location_array[i]);
+      data.push(dataPoint);
+    }
+  }
+  res.json(data);
+
+    //res.json(location_array.concat(bearing_array));
     // request("https://maps.googleapis.com/maps/api/streetview?size=600x300&location=40.724425345,-73.994257955&heading=17.70513968350292&pitch=-0.76", function(error, response, body){
     //   res.sendFile(body);
     //   });
-    console.log("Lat:" + String(location_array[location_array.length-1].lat));
-    var streetURL = "https://maps.googleapis.com/maps/api/streetview?size=600x300&location=" + String(location_array[location_array.length-1].lat) + "," + String(location_array[location_array.length-1].lng) + "&heading=" + bearing_array[bearing_array.length-1] + "&pitch=-0.76";
-    console.log(streetURL);
-    var requestSettings = {
-         // url: "https://maps.googleapis.com/maps/api/streetview?size=600x300&location=40.724425345,-73.994257955&heading=17.70513968350292&pitch=-0.76",
-         url : streetURL,
-         method: 'GET',
-         encoding: null
-     };
 
-    request(requestSettings, function(error, response, body) {
-        res.set('Content-Type', 'image/png');
-        // res.send({image: body, routeinformation: shot_array.concat(bearing_array) });
-        res.send(body)
-    });
+    //var streetURL = "https://maps.googleapis.com/maps/api/streetview?size=600x300&location=" + String(location_array[location_array.length-1].lat) + "," + String(location_array[location_array.length-1].lng) + "&heading=" + bearing_array[bearing_array.length-1] + "&pitch=-0.76";
+    // var requestSettings = {
+    //      // url: "https://maps.googleapis.com/maps/api/streetview?size=600x300&location=40.724425345,-73.994257955&heading=17.70513968350292&pitch=-0.76",
+    //      url : streetURL,
+    //      method: 'GET',
+    //      encoding: null
+    //  };
+    //
+    // request(requestSettings, function(error, response, body) {
+    //     res.set('Content-Type', 'image/png');
+    //     // res.send({image: body, routeinformation: shot_array.concat(bearing_array) });
+    //     res.send(body)
+    // });
+
     });
 
 });

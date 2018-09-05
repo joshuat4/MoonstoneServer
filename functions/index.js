@@ -39,6 +39,14 @@ function _toRad(deg) {
 function _toDeg(rad) {
           return rad * 180 / Math.PI;
       }
+//strip <b> tags from html
+function strip(html)
+      {
+      html = html.replace(/<b>/g, "");
+      html = html.replace(/<\/b>/g, "");
+      return html;
+      }
+
 
 
 // Listens for new messages added to /messages/:pushId/original and creates an
@@ -69,8 +77,9 @@ exports.mapRequest = functions.https.onRequest((req,res) => {
     var description_array = [ob.routes[0].legs[0].steps[0].html_instructions];
     var i;
   for (i = 1; i < ob.routes[0].legs[0].steps.length; i++) {
+
       location_array.push(ob.routes[0].legs[0].steps[i].end_location);
-      description_array.push(ob.routes[0].legs[0].steps[i].html_instructions);
+      description_array.push(strip(ob.routes[0].legs[0].steps[i].html_instructions));
   }
   var shot_array = [];
   var bearing_array = [];

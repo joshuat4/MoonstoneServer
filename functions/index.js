@@ -75,7 +75,7 @@ exports.mapRequest = functions.https.onRequest((req,res) => {
   request(routeURL, function (error, response, body) {
     var ob = JSON.parse(body);
     var location_array = [ob.routes[0].legs[0].steps[0].start_location, ob.routes[0].legs[0].steps[0].end_location];
-    var description_array = [ob.routes[0].legs[0].steps[0].html_instructions];
+    var description_array = [strip(ob.routes[0].legs[0].steps[0].html_instructions)];
     var i;
   for (i = 1; i < ob.routes[0].legs[0].steps.length; i++) {
 

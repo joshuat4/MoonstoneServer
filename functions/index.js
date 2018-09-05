@@ -44,6 +44,7 @@ function strip(html)
       {
       html = html.replace(/<b>/g, "");
       html = html.replace(/<\/b>/g, "");
+      html = html.replace(/<(?:.|\n)*?>/gm, "");
       return html;
       }
 

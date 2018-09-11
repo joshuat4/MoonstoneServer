@@ -69,49 +69,58 @@ exports.mapRequest = functions.https.onRequest((req,res) => {
   var input = req.query.text;
   var split = input.split("---");
 
-  var routeURL = "https://maps.googleapis.com/maps/api/directions/json?origin=" + split[0] + "&destination=" + split[1] + "&mode=walking";
-  //https://maps.googleapis.com/maps/api/directions/json?origin='228 Mott, New York, NY'&destination='102 St Marks Pl, New York, NY&mode=walking
+  var convertRoute = "https://maps.googleapis.com/maps/api/geocode/json?address=";
+  var conFirst = convertRoute + split[0] + "&key=AIzaSyB48bubXS-1ArBemvhzNL0d6_7-hFvyivg";
+  var conSecond = convertRoute + split[1]+ "&key=AIzaSyB48bubXS-1ArBemvhzNL0d6_7-hFvyivg";
 
-  request(routeURL, function (error, response, body) {
-    var ob = JSON.parse(body);
-    var location_array = [ob.routes[0].legs[0].steps[0].start_location, ob.routes[0].legs[0].steps[0].end_location];
-    var description_array = [strip(ob.routes[0].legs[0].steps[0].html_instructions)];
-    var i;
-  for (i = 1; i < ob.routes[0].legs[0].steps.length; i++) {
+  //Convert both requested locations to the closest match as per googles geocoding API
+  request(conFirst, function(error, response, body) {
+    var start = JSON.parse(body).results[0].formatted_address;
+    request(conSecond, function(error, response, body){
+      var end = JSON.parse(body).results[0].formatted_address;
+      var routeURL = "https://maps.googleapis.com/maps/api/directions/json?origin=" + start + "&destination=" + end + "&mode=walking";
+      //https://maps.googleapis.com/maps/api/directions/json?origin='228 Mott, New York, NY'&destination='102 St Marks Pl, New York, NY&mode=walking
 
-      location_array.push(ob.routes[0].legs[0].steps[i].end_location);
-      description_array.push(strip(ob.routes[0].legs[0].steps[i].html_instructions));
-  }
-  var shot_array = [];
-  var bearing_array = [];
+      request(routeURL, function (error, response, body) {
+        var ob = JSON.parse(body);
+        var location_array = [ob.routes[0].legs[0].steps[0].start_location, ob.routes[0].legs[0].steps[0].end_location];
+        var description_array = [strip(ob.routes[0].legs[0].steps[0].html_instructions)];
+        var i;
+      for (i = 1; i < ob.routes[0].legs[0].steps.length; i++) {
+          location_array.push(ob.routes[0].legs[0].steps[i].end_location);
+          description_array.push(strip(ob.routes[0].legs[0].steps[i].html_instructions));
+      }
+      var shot_array = [];
+      var bearing_array = [];
 
-  for(i=0; i < location_array.length-1; i++){
-    var bear = bearing(location_array[i].lat, location_array[i].lng, location_array[i+1].lat, location_array[i+1].lng);
-    bearing_array.push(bear);
-  }
+      for(i=0; i < location_array.length-1; i++){
+        var bear = bearing(location_array[i].lat, location_array[i].lng, location_array[i+1].lat, location_array[i+1].lng);
+        bearing_array.push(bear);
+      }
 
-  //Generate return data
-  var data = [];
-  for(i=0; i<location_array.length; i++){
-    var dataPoint;
-    var streetURL;
-    //Should point at the place
-    if(i === location_array.length-1){
-      //Show a streetview shot of the actual place
-      streetURL = "https://maps.googleapis.com/maps/api/streetview?size=600x300&location=" + split[1];
-      dataPoint = new returnData(streetURL,"Welcome to your destination", location_array[i]);
-      data.push(dataPoint);
+      //Generate return data
+      var data = [];
+      for(i=0; i<location_array.length; i++){
+        var dataPoint;
+        var streetURL;
+        //Should point at the place
+        if(i === location_array.length-1){
+          //Show a streetview shot of the actual place
+          streetURL = "https://maps.googleapis.com/maps/api/streetview?size=600x300&location=" + split[1];
+          dataPoint = new returnData(streetURL,"Welcome to your destination", location_array[i]);
+          data.push(dataPoint);
 
-    }
-    else{
-      streetURL = "https://maps.googleapis.com/maps/api/streetview?size=600x300&location=" + String(location_array[i].lat) + "," + String(location_array[i].lng) + "&heading=" + bearing_array[i] + "&pitch=-0.76";
-      dataPoint = new returnData(streetURL, description_array[i], location_array[i]);
-      data.push(dataPoint);
-    }
-  }
-  res.json(data);
+        }
+        else{
+          streetURL = "https://maps.googleapis.com/maps/api/streetview?size=600x300&location=" + String(location_array[i].lat) + "," + String(location_array[i].lng) + "&heading=" + bearing_array[i] + "&pitch=-0.76";
+          dataPoint = new returnData(streetURL, description_array[i], location_array[i]);
+          data.push(dataPoint);
+        }
+      }
+      res.json(data);
+        });
     });
-
+  });
 });
 
 exports.getWholeDatabase = functions.https.onRequest((req, res) => {

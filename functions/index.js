@@ -18,58 +18,58 @@ exports.addMessage = functions.https.onRequest((req, res) => {
   });
 });
 
-exports.messageNotification = functions.firestore
-	.document('users/{userId}/contacts/{contactId}/messages/{messageId}')
-	.onCreate((snap, context) => {
-			
-		const receiverId = context.params.userId;
-		console.log("receiverId: ", receiverId);
-		
-		const message = snap.data().text;
-		console.log("messageId: ", message);
-		
-		const messageId = context.params.messageId;
-		console.log("messageId: ", messageId);
-		
-		const senderId = snap.data().fromUserId;
-		console.log("fromUserId: ", sender);
-		
-		
-		if (sender.toString().replace(/\r?\n$/, '') === receiverId.toString().replace(/\r?\n$/, '')){
-			console.log("no notification sent, as message from target");
-		} else {
-			return admin.firestore().collection('users').doc(senderId).once('value').then(snap => {
-				const senderName = snap.data().name;
-				console.log("senderName: ", senderName);
-	
-				return admin.firestore().collection('users').doc(receiverId).once('value').then(snap => {
-					const receiverToken = snap.data().deviceToken;
-					console.log("token: ", token);
-					
-					//we have everything we need
-					//Build the message payload and send the message
-					console.log("Build notification");
-					const payload = {
-						data: {
-							data_type: "notification",
-							title: "Text from " + senderName,
-							message: message,
-							message_id: messageId,
-						}
-					};
-					
-					return admin.messaging().sendToDevice(token, payload)
-								.then(function(response) {
-									console.log("Successfully sent message:", response);
-								  })
-								  .catch(function(error) {
-									console.log("Error sending message:", error);
-								  });
-		
-			});
-		});
-	}
-});
+//exports.messageNotification = functions.firestore
+//	.document('users/{userId}/contacts/{contactId}/messages/{messageId}')
+//	.onCreate((snap, context) => {
+//
+//		const receiverId = context.params.userId;
+//		console.log("receiverId: ", receiverId);
+//
+//		const message = snap.data().text;
+//		console.log("messageId: ", message);
+//
+//		const messageId = context.params.messageId;
+//		console.log("messageId: ", messageId);
+//
+//		const senderId = snap.data().fromUserId;
+//		console.log("fromUserId: ", sender);
+//
+//
+//		if (sender.toString().replace(/\r?\n$/, '') === receiverId.toString().replace(/\r?\n$/, '')){
+//			console.log("no notification sent, as message from target");
+//		} else {
+//			return admin.firestore().collection('users').doc(senderId).once('value').then(snap => {
+//				const senderName = snap.data().name;
+//				console.log("senderName: ", senderName);
+//
+//				return admin.firestore().collection('users').doc(receiverId).once('value').then(snap => {
+//					const receiverToken = snap.data().deviceToken;
+//					console.log("token: ", token);
+//
+//					//we have everything we need
+//					//Build the message payload and send the message
+//					console.log("Build notification");
+//					const payload = {
+//						data: {
+//							data_type: "notification",
+//							title: "Text from " + senderName,
+//							message: message,
+//							message_id: messageId,
+//						}
+//					};
+//
+//					return admin.messaging().sendToDevice(token, payload)
+//								.then(function(response) {
+//									console.log("Successfully sent message:", response);
+//								  })
+//								  .catch(function(error) {
+//									console.log("Error sending message:", error);
+//								  });
+//
+//			});
+//		});
+//	}
+//});
 
 function returnData(imageURL, description, coord) {
     this.imageURL = imageURL;
@@ -131,7 +131,7 @@ exports.mapRequest = functions.https.onRequest((req,res) => {
     var start = JSON.parse(body).results[0].formatted_address;
     request(conSecond, function(error, response, body){
       var end = JSON.parse(body).results[0].formatted_address;
-      var routeURL = "https://maps.googleapis.com/maps/api/directions/json?origin=" + start + "&destination=" + end + "&mode=walking";
+      var routeURL = "https://maps.googleapis.com/maps/api/directions/json?origin=" + start + "&destination=" + end + "&mode=walking&key=AIzaSyB48bubXS-1ArBemvhzNL0d6_7-hFvyivg";
       //https://maps.googleapis.com/maps/api/directions/json?origin='228 Mott, New York, NY'&destination='102 St Marks Pl, New York, NY&mode=walking
 
       request(routeURL, function (error, response, body) {
@@ -159,13 +159,15 @@ exports.mapRequest = functions.https.onRequest((req,res) => {
         //Should point at the place
         if(i === location_array.length-1){
           //Show a streetview shot of the actual place
-          streetURL = "https://maps.googleapis.com/maps/api/streetview?size=600x300&location=" + split[1];
+          streetURL = "https://maps.googleapis.com/maps/api/streetview?size=600x300&location=" + split[1] + "&key=AIzaSyB48bubXS-1ArBemvhzNL0d6_7-hFvyivg";
           dataPoint = new returnData(streetURL,"Welcome to your destination", location_array[i]);
           data.push(dataPoint);
 
         }
         else{
-          streetURL = "https://maps.googleapis.com/maps/api/streetview?size=600x300&location=" + String(location_array[i].lat) + "," + String(location_array[i].lng) + "&heading=" + bearing_array[i] + "&pitch=-0.76";
+          streetURL = "https://maps.googleapis.com/maps/api/streetview?size=600x300&location=" +
+          String(location_array[i].lat) + "," + String(location_array[i].lng) +
+          "&heading=" + bearing_array[i] + "&pitch=-0.76" + "&key=AIzaSyB48bubXS-1ArBemvhzNL0d6_7-hFvyivg";
           dataPoint = new returnData(streetURL, description_array[i], location_array[i]);
           data.push(dataPoint);
         }

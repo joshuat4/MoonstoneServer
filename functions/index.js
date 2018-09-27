@@ -62,7 +62,6 @@ exports.messageNotification = functions.firestore
     }
   });
 
-
 function returnData(imageURL, description, coord) {
     this.imageURL = imageURL;
     this.description = description;
@@ -123,7 +122,7 @@ exports.mapRequest = functions.https.onRequest((req,res) => {
     var start = JSON.parse(body).results[0].formatted_address;
     request(conSecond, function(error, response, body){
       var end = JSON.parse(body).results[0].formatted_address;
-      var routeURL = "https://maps.googleapis.com/maps/api/directions/json?origin=" + start + "&destination=" + end + "&mode=walking";
+      var routeURL = "https://maps.googleapis.com/maps/api/directions/json?origin=" + start + "&destination=" + end + "&mode=walking&key=AIzaSyB48bubXS-1ArBemvhzNL0d6_7-hFvyivg";
       //https://maps.googleapis.com/maps/api/directions/json?origin='228 Mott, New York, NY'&destination='102 St Marks Pl, New York, NY&mode=walking
 
       request(routeURL, function (error, response, body) {
@@ -151,13 +150,15 @@ exports.mapRequest = functions.https.onRequest((req,res) => {
         //Should point at the place
         if(i === location_array.length-1){
           //Show a streetview shot of the actual place
-          streetURL = "https://maps.googleapis.com/maps/api/streetview?size=600x300&location=" + split[1];
+          streetURL = "https://maps.googleapis.com/maps/api/streetview?size=600x300&location=" + split[1] + "&key=AIzaSyB48bubXS-1ArBemvhzNL0d6_7-hFvyivg";
           dataPoint = new returnData(streetURL,"Welcome to your destination", location_array[i]);
           data.push(dataPoint);
 
         }
         else{
-          streetURL = "https://maps.googleapis.com/maps/api/streetview?size=600x300&location=" + String(location_array[i].lat) + "," + String(location_array[i].lng) + "&heading=" + bearing_array[i] + "&pitch=-0.76";
+          streetURL = "https://maps.googleapis.com/maps/api/streetview?size=600x300&location=" +
+          String(location_array[i].lat) + "," + String(location_array[i].lng) +
+          "&heading=" + bearing_array[i] + "&pitch=-0.76" + "&key=AIzaSyB48bubXS-1ArBemvhzNL0d6_7-hFvyivg";
           dataPoint = new returnData(streetURL, description_array[i], location_array[i]);
           data.push(dataPoint);
         }

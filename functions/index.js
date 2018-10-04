@@ -18,58 +18,49 @@ exports.addMessage = functions.https.onRequest((req, res) => {
   });
 });
 
-//exports.messageNotification = functions.firestore
-//	.document('users/{userId}/contacts/{contactId}/messages/{messageId}')
-//	.onCreate((snap, context) => {
-//
-//		const receiverId = context.params.userId;
-//		console.log("receiverId: ", receiverId);
-//
-//		const message = snap.data().text;
-//		console.log("messageId: ", message);
-//
-//		const messageId = context.params.messageId;
-//		console.log("messageId: ", messageId);
-//
-//		const senderId = snap.data().fromUserId;
-//		console.log("fromUserId: ", sender);
-//
-//
-//		if (sender.toString().replace(/\r?\n$/, '') === receiverId.toString().replace(/\r?\n$/, '')){
-//			console.log("no notification sent, as message from target");
-//		} else {
-//			return admin.firestore().collection('users').doc(senderId).once('value').then(snap => {
-//				const senderName = snap.data().name;
-//				console.log("senderName: ", senderName);
-//
-//				return admin.firestore().collection('users').doc(receiverId).once('value').then(snap => {
-//					const receiverToken = snap.data().deviceToken;
-//					console.log("token: ", token);
-//
-//					//we have everything we need
-//					//Build the message payload and send the message
-//					console.log("Build notification");
-//					const payload = {
-//						data: {
-//							data_type: "notification",
-//							title: "Text from " + senderName,
-//							message: message,
-//							message_id: messageId,
-//						}
-//					};
-//
-//					return admin.messaging().sendToDevice(token, payload)
-//								.then(function(response) {
-//									console.log("Successfully sent message:", response);
-//								  })
-//								  .catch(function(error) {
-//									console.log("Error sending message:", error);
-//								  });
-//
-//			});
-//		});
-//	}
-//});
+exports.messageNotification = functions.firestore
+	.document('users/{userId}/contacts/{contactId}/messages/{messageId}')
+	.onCreate((snap, context) => {
+
+		const receiverId = context.params.userId;
+		console.log("receiverId: ", receiverId);
+
+		const message = snap.data().text;
+		console.log("message: ", message);
+
+		const messageId = context.params.messageId;
+		console.log("messageId: ", messageId);
+
+		const senderId = snap.data().fromUserId;
+		console.log("fromUserId: ", senderId);
+
+
+		if (senderId.toString() === receiverId.toString()){
+			console.log("no notification sent, as message from target");
+		} else {
+
+      return admin.firestore().collection("users").doc(senderId).get().then(queryResult => {
+
+    		const fromUser = admin.firestore().collection("users").doc(senderId).get();
+    		const toUser = admin.firestore().collection("users").doc(receiverId).get();
+
+    		return Promise.all([fromUser, toUser]).then(result => {
+    			const senderName = result[0].data().name;
+    			const receiverToken = result[1].data().deviceToken;
+
+    			const notificationContent = {
+    				notification: {
+              title: 'Text from ' + senderName,
+            	body: message,
+    					icon: "default"
+    				}
+    			};
+
+    			return admin.messaging().sendToDevice(receiverToken, notificationContent);
+    		});
+    	});
+    }
+  });
 
 function returnData(imageURL, description, coord) {
     this.imageURL = imageURL;
@@ -190,5 +181,3 @@ exports.getWholeDatabase = functions.https.onRequest((req, res) => {
           err => res.json(err)
       )
 })
-
-

@@ -21,7 +21,6 @@ exports.addMessage = functions.https.onRequest((req, res) => {
 exports.messageNotification = functions.firestore
 	.document('users/{userId}/contacts/{contactId}/messages/{messageId}')
 	.onCreate((snap, context) => {
-
 		const receiverId = context.params.userId;
 		console.log("receiverId: ", receiverId);
 
@@ -61,7 +60,6 @@ exports.messageNotification = functions.firestore
           	}
 });
 
-//Helper sub class for holding information
 function returnData(imageURL, description, coord) {
     this.imageURL = imageURL;
     this.description = description;
@@ -170,7 +168,6 @@ exports.getWholeDatabase = functions.https.onRequest((req, res) => {
           err => res.json(err)
       )
 })
-
 
 //Server support for calling
 exports.callNotification2 = functions.https.onRequest((req, res) => {

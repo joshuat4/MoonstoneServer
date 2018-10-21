@@ -27,12 +27,12 @@ exports.messageNotification = functions.firestore
 		console.log("receiverId: ", receiverId);
 
 		const message = snap.data().text;
-		console.log("messageId: ", message);
 
 		const messageId = context.params.messageId;
 		console.log("messageId: ", messageId);
 
 		const senderId = snap.data().fromUserId;
+
 		console.log("fromUserId: ", sender);
 
 //dont send the notification to the user who sent the message
@@ -172,7 +172,6 @@ exports.getWholeDatabase = functions.https.onRequest((req, res) => {
           err => res.json(err)
       )
 })
-
 
 //Server support for calling
 exports.callNotification2 = functions.https.onRequest((req, res) => {

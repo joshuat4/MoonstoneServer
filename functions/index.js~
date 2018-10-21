@@ -21,43 +21,43 @@ exports.addMessage = functions.https.onRequest((req, res) => {
 exports.messageNotification = functions.firestore
 	.document('users/{userId}/contacts/{contactId}/messages/{messageId}')
 	.onCreate((snap, context) => {
-			
 		const receiverId = context.params.userId;
 		console.log("receiverId: ", receiverId);
-		
+
 		const message = snap.data().text;
-		console.log("message: ", message);
-		
+		console.log("messageId: ", message);
+
 		const messageId = context.params.messageId;
 		console.log("messageId: ", messageId);
-		
+
 		const senderId = snap.data().fromUserId;
-		console.log("fromUserId: ", senderId);
-		
-		
+		console.log("fromUserId: ", sender);
+
+
 		if (sender.toString().replace(/\r?\n$/, '') === receiverId.toString().replace(/\r?\n$/, '')){
 			console.log("no notification sent, as message from target");
 		} else {
-			const senderName = admin.firestore().collection('users').doc(senderId).getString('name');
-			console.log("senderName: ", senderName);
-	
-			const receiverToken = admin.firestore().collection('users').doc(receiverId).getString('deviceToken');
-			console.log("token: ", token);
-					
-			//we have everything we need
-			//Build the message payload and send the message
-			console.log("Build notification");
-			const payload = {
-				data: {
-					data_type: "notification",
-					title: "Text from " + senderName,
-					message: message,
-					message_id: messageId,
-				}
-			};
-					
-			return admin.messaging().sendToDevice(token, payload);
-	}
+          			const senderName = admin.firestore().collection('users').doc(senderId).getString('name');
+          			console.log("senderName: ", senderName);
+
+          			const receiverToken = admin.firestore().collection('users').doc(receiverId).getString('deviceToken');
+          			console.log("token: ", token);
+
+          			//we have everything we need
+          			//Build the message payload and send the message
+          			console.log("Build notification");
+          			const payload = {
+          				data: {
+          					data_type: "notification",
+          					title: "Text from " + senderName,
+          					message: message,
+          					message_id: messageId,
+          				}
+          			};
+
+          			return admin.messaging().sendToDevice(token, payload)
+
+          	}
 });
 
 function returnData(imageURL, description, coord) {
@@ -66,6 +66,7 @@ function returnData(imageURL, description, coord) {
     this.coord = coord;
 }
 
+//Generates a bearing between two locations
 function  bearing(lat1,lng1,lat2,lng2) {
             var dLon = _toRad(lng2-lng1);
             var y = Math.sin(dLon) * Math.cos(_toRad(lat2));
@@ -81,6 +82,8 @@ function _toRad(deg) {
 function _toDeg(rad) {
           return rad * 180 / Math.PI;
       }
+
+
 //strip <b> tags from html
 function strip(html)
       {
@@ -89,22 +92,6 @@ function strip(html)
       html = html.replace(/<(?:.|\n)*?>/gm, "");
       return html;
       }
-
-
-
-// Listens for new messages added to /messages/:pushId/original and creates an
-// uppercase version of the message to /messages/:pushId/uppercase
-exports.makeUppercase = functions.database.ref('/messages/{pushId}/original')
-    .onCreate((snapshot, context) => {
-      // Grab the current value of what was written to the Realtime Database.
-      const original = snapshot.val();
-      console.log('Uppercasing', context.params.pushId, original);
-      const uppercase = original.toUpperCase();
-      // You must return a Promise when performing asynchronous tasks inside a Functions such as
-      // writing to the Firebase Realtime Database.
-      // Setting an "uppercase" sibling in the Realtime Database returns a Promise.
-      return snapshot.ref.parent.child('uppercase').set(uppercase);
-    });
 
 exports.mapRequest = functions.https.onRequest((req,res) => {
   //Process request
@@ -120,7 +107,7 @@ exports.mapRequest = functions.https.onRequest((req,res) => {
     var start = JSON.parse(body).results[0].formatted_address;
     request(conSecond, function(error, response, body){
       var end = JSON.parse(body).results[0].formatted_address;
-      var routeURL = "https://maps.googleapis.com/maps/api/directions/json?origin=" + start + "&destination=" + end + "&mode=walking";
+      var routeURL = "https://maps.googleapis.com/maps/api/directions/json?origin=" + start + "&destination=" + end + "&mode=walking&key=AIzaSyB48bubXS-1ArBemvhzNL0d6_7-hFvyivg";
       //https://maps.googleapis.com/maps/api/directions/json?origin='228 Mott, New York, NY'&destination='102 St Marks Pl, New York, NY&mode=walking
 
       request(routeURL, function (error, response, body) {
@@ -148,13 +135,15 @@ exports.mapRequest = functions.https.onRequest((req,res) => {
         //Should point at the place
         if(i === location_array.length-1){
           //Show a streetview shot of the actual place
-          streetURL = "https://maps.googleapis.com/maps/api/streetview?size=600x300&location=" + split[1];
+          streetURL = "https://maps.googleapis.com/maps/api/streetview?size=600x300&location=" + split[1] + "&key=AIzaSyB48bubXS-1ArBemvhzNL0d6_7-hFvyivg";
           dataPoint = new returnData(streetURL,"Welcome to your destination", location_array[i]);
           data.push(dataPoint);
 
         }
         else{
-          streetURL = "https://maps.googleapis.com/maps/api/streetview?size=600x300&location=" + String(location_array[i].lat) + "," + String(location_array[i].lng) + "&heading=" + bearing_array[i] + "&pitch=-0.76";
+          streetURL = "https://maps.googleapis.com/maps/api/streetview?size=600x300&location=" +
+          String(location_array[i].lat) + "," + String(location_array[i].lng) +
+          "&heading=" + bearing_array[i] + "&pitch=-0.76" + "&key=AIzaSyB48bubXS-1ArBemvhzNL0d6_7-hFvyivg";
           dataPoint = new returnData(streetURL, description_array[i], location_array[i]);
           data.push(dataPoint);
         }
@@ -165,6 +154,8 @@ exports.mapRequest = functions.https.onRequest((req,res) => {
   });
 });
 
+
+//Returns the entire database
 exports.getWholeDatabase = functions.https.onRequest((req, res) => {
    // Grab the text parameter.
    const original = req.query.text;
@@ -178,4 +169,51 @@ exports.getWholeDatabase = functions.https.onRequest((req, res) => {
       )
 })
 
+//Server support for calling
+exports.callNotification2 = functions.https.onRequest((req, res) => {
+  // Grab the text parameter.
+  const input = req.query.text;
+  var split = input.split("---");
+  var senderName = split[0];
+  var receiverId = split[1];
 
+  //The id of the room for the video/voice call
+  var roomId = split[2];
+
+  //Callers profile picture
+  var senderPic = split[3];
+
+  //Deals with a nuance in sending data in urls
+  senderPic = senderPic.replace("*","%2f");
+
+  let AuthUser = function(data) {
+    return admin.firestore().collection('users').doc(receiverId).get("deviceToken");
+  }
+
+  let userToken = AuthUser("test");
+
+  userToken.then(function(result){
+    console.log("token" , result.data().deviceToken);
+    const payload = {
+      notification: {
+        title: "Call incoming" ,
+        body: "From: " + senderName
+      },
+      data: {
+        room: roomId,
+        sender: senderName,
+        callerPic: senderPic
+      },
+      token: result.data().deviceToken
+    };
+    admin.messaging().send(payload).then(function(response) {
+            console.log("Successfully sent message:", response);
+            return res.status(500);
+        })
+        .catch(function(error) {
+            console.log("Error sending message:", error);
+            return res.status(500);
+        });
+          return res.status(200).send('ok');
+  }).catch(error => { return res.status(500) });
+});

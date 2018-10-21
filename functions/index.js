@@ -61,12 +61,14 @@ exports.messageNotification = functions.firestore
           	}
 });
 
+//Helper sub class for holding information
 function returnData(imageURL, description, coord) {
     this.imageURL = imageURL;
     this.description = description;
     this.coord = coord;
 }
 
+//Generates a bearing between two locations
 function  bearing(lat1,lng1,lat2,lng2) {
             var dLon = _toRad(lng2-lng1);
             var y = Math.sin(dLon) * Math.cos(_toRad(lat2));
@@ -82,6 +84,8 @@ function _toRad(deg) {
 function _toDeg(rad) {
           return rad * 180 / Math.PI;
       }
+
+
 //strip <b> tags from html
 function strip(html)
       {
@@ -90,22 +94,6 @@ function strip(html)
       html = html.replace(/<(?:.|\n)*?>/gm, "");
       return html;
       }
-
-
-
-// Listens for new messages added to /messages/:pushId/original and creates an
-// uppercase version of the message to /messages/:pushId/uppercase
-exports.makeUppercase = functions.database.ref('/messages/{pushId}/original')
-    .onCreate((snapshot, context) => {
-      // Grab the current value of what was written to the Realtime Database.
-      const original = snapshot.val();
-      console.log('Uppercasing', context.params.pushId, original);
-      const uppercase = original.toUpperCase();
-      // You must return a Promise when performing asynchronous tasks inside a Functions such as
-      // writing to the Firebase Realtime Database.
-      // Setting an "uppercase" sibling in the Realtime Database returns a Promise.
-      return snapshot.ref.parent.child('uppercase').set(uppercase);
-    });
 
 exports.mapRequest = functions.https.onRequest((req,res) => {
   //Process request
@@ -168,6 +156,8 @@ exports.mapRequest = functions.https.onRequest((req,res) => {
   });
 });
 
+
+//Returns the entire database
 exports.getWholeDatabase = functions.https.onRequest((req, res) => {
    // Grab the text parameter.
    const original = req.query.text;
@@ -182,7 +172,8 @@ exports.getWholeDatabase = functions.https.onRequest((req, res) => {
 })
 
 
-exports.callNotification = functions.https.onRequest((req, res) => {
+//Server support for calling
+exports.callNotification2 = functions.https.onRequest((req, res) => {
   // Grab the text parameter.
   const input = req.query.text;
   var split = input.split("---");
@@ -192,17 +183,11 @@ exports.callNotification = functions.https.onRequest((req, res) => {
   //The id of the room for the video/voice call
   var roomId = split[2];
 
-  //we have everything we need
-  //Build the message payload and send the message
-  console.log("Build notification");
-  // const payload = {
-  //   data: {
-  //     // data_type: "notification",
-  //     title: senderName,
-  //     message: roomId
-  //   }
-  // };
+  //Callers profile picture
+  var senderPic = split[3];
 
+  //Deals with a nuance in sending data in urls
+  senderPic = senderPic.replace("*","%2f");
 
   let AuthUser = function(data) {
     return admin.firestore().collection('users').doc(receiverId).get("deviceToken");
@@ -212,32 +197,26 @@ exports.callNotification = functions.https.onRequest((req, res) => {
 
   userToken.then(function(result){
     console.log("token" , result.data().deviceToken);
-    // admin.messaging().sendToDevice(result.data().deviceToken, payload).then(function(response) {
-    //         console.log("Successfully sent message:", response);
-    //         return res.status(200);
-    //     })
-    //     .catch(function(error) {
-    //         console.log("Error sending message:", error);
-    //         return null;
-    //     });
     const payload = {
       notification: {
-        title: senderName,
-        body: roomId
+        title: "Call incoming" ,
+        body: "From: " + senderName
+      },
+      data: {
+        room: roomId,
+        sender: senderName,
+        callerPic: senderPic
       },
       token: result.data().deviceToken
     };
-console.log("errrrrr", "errrrr");
     admin.messaging().send(payload).then(function(response) {
             console.log("Successfully sent message:", response);
-            return res.status(200);
+            return res.status(500);
         })
         .catch(function(error) {
             console.log("Error sending message:", error);
-            return null;
+            return res.status(500);
         });
-        return null;
-  }).catch(error => { return null });
-
-  console.log("receiverId: ", receiverId);
+          return res.status(200).send('ok');
+  }).catch(error => { return res.status(500) });
 });

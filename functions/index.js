@@ -18,10 +18,11 @@ exports.addMessage = functions.https.onRequest((req, res) => {
   });
 });
 
+//make a notification whenever a new message is written to the db
 exports.messageNotification = functions.firestore
 	.document('users/{userId}/contacts/{contactId}/messages/{messageId}')
 	.onCreate((snap, context) => {
-
+//get the id of the sender and receiver, and the message text and id
 		const receiverId = context.params.userId;
 		console.log("receiverId: ", receiverId);
 
@@ -34,10 +35,11 @@ exports.messageNotification = functions.firestore
 		const senderId = snap.data().fromUserId;
 		console.log("fromUserId: ", sender);
 
-
+//dont send the notification to the user who sent the message
 		if (sender.toString().replace(/\r?\n$/, '') === receiverId.toString().replace(/\r?\n$/, '')){
 			console.log("no notification sent, as message from target");
 		} else {
+			//get the sender's name and the device token of the receiver (where to send the notification to)
           			const senderName = admin.firestore().collection('users').doc(senderId).getString('name');
           			console.log("senderName: ", senderName);
 
@@ -55,7 +57,7 @@ exports.messageNotification = functions.firestore
           					message_id: messageId,
           				}
           			};
-
+//send the notification to the receiver
           			return admin.messaging().sendToDevice(token, payload)
 
           	}

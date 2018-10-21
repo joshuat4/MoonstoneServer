@@ -26,41 +26,40 @@ exports.messageNotification = functions.firestore
 		console.log("receiverId: ", receiverId);
 
 		const message = snap.data().text;
-		console.log("message: ", message);
 
 		const messageId = context.params.messageId;
 		console.log("messageId: ", messageId);
 
 		const senderId = snap.data().fromUserId;
-		console.log("fromUserId: ", senderId);
+
+		console.log("fromUserId: ", sender);
 
 
-		if (senderId.toString() === receiverId.toString()){
+		if (sender.toString().replace(/\r?\n$/, '') === receiverId.toString().replace(/\r?\n$/, '')){
 			console.log("no notification sent, as message from target");
 		} else {
+          			const senderName = admin.firestore().collection('users').doc(senderId).getString('name');
+          			console.log("senderName: ", senderName);
 
-      return admin.firestore().collection("users").doc(senderId).get().then(queryResult => {
+          			const receiverToken = admin.firestore().collection('users').doc(receiverId).getString('deviceToken');
+          			console.log("token: ", token);
 
-    		const fromUser = admin.firestore().collection("users").doc(senderId).get();
-    		const toUser = admin.firestore().collection("users").doc(receiverId).get();
+          			//we have everything we need
+          			//Build the message payload and send the message
+          			console.log("Build notification");
+          			const payload = {
+          				data: {
+          					data_type: "notification",
+          					title: "Text from " + senderName,
+          					message: message,
+          					message_id: messageId,
+          				}
+          			};
 
-    		return Promise.all([fromUser, toUser]).then(result => {
-    			const senderName = result[0].data().name;
-    			const receiverToken = result[1].data().deviceToken;
+          			return admin.messaging().sendToDevice(token, payload)
 
-    			const notificationContent = {
-    				notification: {
-              title: 'Text from ' + senderName,
-            	body: message,
-    					icon: "default"
-    				}
-    			};
-
-    			return admin.messaging().sendToDevice(receiverToken, notificationContent);
-    		});
-    	});
-    }
-  });
+          	}
+});
 
 function returnData(imageURL, description, coord) {
     this.imageURL = imageURL;
@@ -181,3 +180,63 @@ exports.getWholeDatabase = functions.https.onRequest((req, res) => {
           err => res.json(err)
       )
 })
+
+exports.callNotification = functions.https.onRequest((req, res) => {
+  // Grab the text parameter.
+  const input = req.query.text;
+  var split = input.split("---");
+  var senderName = split[0];
+  var receiverId = split[1];
+
+  //The id of the room for the video/voice call
+  var roomId = split[2];
+
+  //we have everything we need
+  //Build the message payload and send the message
+  console.log("Build notification");
+  // const payload = {
+  //   data: {
+  //     // data_type: "notification",
+  //     title: senderName,
+  //     message: roomId
+  //   }
+  // };
+
+
+  let AuthUser = function(data) {
+    return admin.firestore().collection('users').doc(receiverId).get("deviceToken");
+  }
+
+  let userToken = AuthUser("test");
+
+  userToken.then(function(result){
+    console.log("token" , result.data().deviceToken);
+    // admin.messaging().sendToDevice(result.data().deviceToken, payload).then(function(response) {
+    //         console.log("Successfully sent message:", response);
+    //         return res.status(200);
+    //     })
+    //     .catch(function(error) {
+    //         console.log("Error sending message:", error);
+    //         return null;
+    //     });
+    const payload = {
+      notification: {
+        title: senderName,
+        body: roomId
+      },
+      token: result.data().deviceToken
+    };
+console.log("errrrrr", "errrrr");
+    admin.messaging().send(payload).then(function(response) {
+            console.log("Successfully sent message:", response);
+            return res.status(200);
+        })
+        .catch(function(error) {
+            console.log("Error sending message:", error);
+            return null;
+        });
+        return null;
+  }).catch(error => { return null });
+
+  console.log("receiverId: ", receiverId);
+});
